@@ -637,6 +637,16 @@ class TBAFSArchive:
                 except (TBAFSExtractionError, ValueError, struct.error) as e:
                     print(f"Error extracting {entry.full_path}: {e}", file=sys.stderr)
 
+    def show_types(self) -> None:
+        """
+        List all the files with *SetType commands to restore types on RISC OS.
+        """
+        for entry in self.iter_entries():
+            if entry.is_file:
+                filetype = entry.filetype
+                if filetype is not None:
+                    print(f"*SetType {entry.full_riscos_path} {filetype:03X}")
+
 
 def main() -> int:
     parser = argparse.ArgumentParser(
@@ -657,6 +667,13 @@ def main() -> int:
     )
     extract_parser.add_argument("archive", help="Path to .b21 archive")
     extract_parser.add_argument("-o", "--output", default=".", help="Output directory")
+
+    # Types command
+    extract_parser = subparsers.add_parser(
+        "types", aliases=["t"], help="Output *SetType commands to restore "
+                                     "filetypes on an incorrectly extracted file"
+    )
+    extract_parser.add_argument("archive", help="Path to .b21 archive")
 
     # Info command
     info_parser = subparsers.add_parser("info", aliases=["i"], help="Show archive information")
@@ -679,6 +696,9 @@ def main() -> int:
                     output_dir = Path(args.output)
                     output_dir.mkdir(parents=True, exist_ok=True)
                     archive.extract_all(output_dir)
+
+            elif args.command in ('types', 't'):
+                    archive.show_types()
 
             elif args.command in ('info', 'i'):
                     print(f"Magic: {archive.header.magic}")
